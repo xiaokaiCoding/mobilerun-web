@@ -75,6 +75,35 @@ async def scan_devices(db: AsyncSession = Depends(get_db)) -> list[Device]:
     return list(result.scalars().all())
 
 
+@router.post("/register", response_model=DeviceResponse, status_code=201)
+async def register_device(
+    payload: DeviceCreate,
+    db: AsyncSession = Depends(get_db),
+) -> Device:
+    """Manually register a device."""
+    # Check if serial already exists
+    result = await db.execute(select(Device).where(Device.serial == payload.serial))
+    existing = result.scalar_one_or_none()
+    if existing:
+        raise HTTPException(
+            status_code=409, detail=f"Device with serial '{payload.serial}' already exists"
+        )
+
+    device = Device(
+        serial=payload.serial,
+        name=payload.name,
+        model=payload.model,
+        platform=payload.platform,
+        status="offline",
+        adb_host=payload.adb_host,
+        adb_port=payload.adb_port,
+    )
+    db.add(device)
+    await db.commit()
+    await db.refresh(device)
+    return device
+
+
 @router.get("/{device_id}", response_model=DeviceResponse)
 async def get_device(device_id: int, db: AsyncSession = Depends(get_db)) -> Device:
     """Get a single device by ID."""

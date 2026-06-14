@@ -15,7 +15,7 @@ import dayjs from 'dayjs';
 import { getExecutions, createExecution } from '../api/executions';
 import { getDevices } from '../api/devices';
 import { getTestCases } from '../api/testCases';
-import { getLLMConfigs } from '../api/llmConfig';
+import { getLLMConfig, type LLMConfigData } from '../api/llmConfig';
 import type { Execution, Device, TestCase, LLMConfig } from '../types';
 
 const statusMap: Record<Execution['status'], { color: string; text: string }> = {
@@ -34,7 +34,7 @@ export default function ExecutionPage() {
   const [form] = Form.useForm();
   const [devices, setDevices] = useState<Device[]>([]);
   const [testCases, setTestCases] = useState<TestCase[]>([]);
-  const [llmConfigs, setLlmConfigs] = useState<LLMConfig[]>([]);
+  const [llmConfigs, setLlmConfigs] = useState<LLMConfigData[]>([]);
 
   const fetchExecutions = async () => {
     setLoading(true);
@@ -53,7 +53,7 @@ export default function ExecutionPage() {
       const [d, tc, lc] = await Promise.all([
         getDevices(),
         getTestCases(),
-        getLLMConfigs(),
+        getLLMConfig().then(c => c ? [c] : []),
       ]);
       setDevices(d);
       setTestCases(tc);
@@ -190,10 +190,9 @@ export default function ExecutionPage() {
           <Form.Item name="llmConfigId" label="LLM配置 (可选)">
             <Select
               allowClear
-              options={llmConfigs.map((lc) => ({
-                label: `${lc.name} (${lc.provider}/${lc.modelName})`,
-                value: lc.id,
-              }))}
+              placeholder={llmConfigs.length > 0 ? `当前: ${llmConfigs[0].model} (${llmConfigs[0].provider})` : '暂无配置'}
+              disabled={llmConfigs.length === 0}
+              value={null}
             />
           </Form.Item>
         </Form>

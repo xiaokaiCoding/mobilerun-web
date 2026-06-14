@@ -11,6 +11,11 @@ export async function scanDevices(): Promise<Device[]> {
   return data;
 }
 
+export async function registerDevice(payload: { serial: string; name?: string; model?: string; platform?: string }): Promise<Device> {
+  const { data } = await apiClient.post<Device>('/devices/register', payload);
+  return data;
+}
+
 export async function getDevice(id: string): Promise<Device> {
   const { data } = await apiClient.get<Device>(`/devices/${id}`);
   return data;

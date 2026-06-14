@@ -1,244 +1,100 @@
 import { useEffect, useState } from 'react';
-import {
-  Table,
-  Button,
-  Modal,
-  Form,
-  Select,
-  Input,
-  InputNumber,
-  Descriptions,
-  Tag,
-  Space,
-  message,
-  Popconfirm,
-} from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import dayjs from 'dayjs';
-import {
-  getLLMConfigs,
-  getActiveLLMConfig,
-  createLLMConfig,
-  updateLLMConfig,
-  activateLLMConfig,
-  deleteLLMConfig,
-} from '../api/llmConfig';
-import type { LLMConfig } from '../types';
+import { Button, Form, Input, InputNumber, Select, message, Card, Descriptions, Spin } from 'antd';
+import { apiClient } from '../api/client';
 
 const PROVIDER_OPTIONS = [
-  { label: 'OpenAI', value: 'openai' },
+  { label: 'OpenAI', value: 'OpenAI' },
+  { label: 'OpenAI Compatible', value: 'OpenAILike' },
   { label: 'Anthropic', value: 'anthropic' },
-  { label: 'Azure', value: 'azure' },
   { label: 'Ollama', value: 'ollama' },
   { label: 'DeepSeek', value: 'deepseek' },
+  { label: 'OpenRouter', value: 'openrouter' },
 ];
 
-export default function LLMConfigPage() {
-  const [configs, setConfigs] = useState<LLMConfig[]>([]);
-  const [activeConfig, setActiveConfig] = useState<LLMConfig | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form] = Form.useForm();
+interface LLMConfigForm {
+  provider: string;
+  model: string;
+  base_url: string;
+  api_key: string;
+  temperature: number;
+  max_tokens: number;
+}
 
-  const fetchAll = async () => {
+export default function LLMConfigPage() {
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form] = Form.useForm<LLMConfigForm>();
+
+  const fetchConfig = async () => {
     setLoading(true);
     try {
-      const [list, active] = await Promise.all([
-        getLLMConfigs(),
-        getActiveLLMConfig().catch(() => null),
-      ]);
-      setConfigs(list);
-      setActiveConfig(active);
+      const data = await apiClient.get<LLMConfigForm>('/llm-config').then(r => r.data);
+      form.setFieldsValue(data);
     } catch {
-      message.error('获取配置列表失败');
+      message.error('获取配置失败');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAll();
+    fetchConfig();
   }, []);
-
-  const handleOpenModal = (record?: LLMConfig) => {
-    if (record) {
-      setEditingId(record.id);
-      form.setFieldsValue({
-        name: record.name,
-        provider: record.provider,
-        modelName: record.modelName,
-        baseUrl: record.baseUrl,
-        apiKey: '',
-        temperature: record.temperature,
-        maxTokens: record.maxTokens,
-      });
-    } else {
-      setEditingId(null);
-      form.resetFields();
-    }
-    setModalOpen(true);
-  };
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      if (editingId) {
-        await updateLLMConfig(editingId, values);
-        message.success('更新成功');
-      } else {
-        await createLLMConfig(values);
-        message.success('创建成功');
-      }
-      setModalOpen(false);
-      await fetchAll();
+      setSaving(true);
+      await apiClient.put('/llm-config', values);
+      message.success('配置已保存并同步到 mobilerun');
     } catch (e: unknown) {
       if (e && typeof e === 'object' && 'errorFields' in e) return;
-      message.error(editingId ? '更新失败' : '创建失败');
+      message.error('保存失败');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleActivate = async (id: string) => {
-    try {
-      await activateLLMConfig(id);
-      message.success('已设为活跃配置');
-      await fetchAll();
-    } catch {
-      message.error('设置活跃配置失败');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteLLMConfig(id);
-      message.success('删除成功');
-      await fetchAll();
-    } catch {
-      message.error('删除失败');
-    }
-  };
-
-  const columns: ColumnsType<LLMConfig> = [
-    { title: '名称', dataIndex: 'name', key: 'name', width: 120 },
-    { title: '提供商', dataIndex: 'provider', key: 'provider', width: 100 },
-    { title: '模型', dataIndex: 'modelName', key: 'modelName', width: 150 },
-    {
-      title: 'Base URL',
-      dataIndex: 'baseUrl',
-      key: 'baseUrl',
-      ellipsis: true,
-    },
-    { title: '温度', dataIndex: 'temperature', key: 'temperature', width: 80 },
-    {
-      title: '状态',
-      dataIndex: 'isActive',
-      key: 'isActive',
-      width: 80,
-      render: (isActive: boolean) =>
-        isActive ? <Tag color="green">活跃</Tag> : <Tag>普通</Tag>,
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 220,
-      render: (_, record) => (
-        <Space>
-          {!record.isActive && (
-            <Button size="small" onClick={() => handleActivate(record.id)}>
-              设为活跃
-            </Button>
-          )}
-          <Button size="small" onClick={() => handleOpenModal(record)}>
-            编辑
-          </Button>
-          <Popconfirm
-            title="确认删除"
-            onConfirm={() => handleDelete(record.id)}
-            okText="确认"
-            cancelText="取消"
-          >
-            <Button size="small" danger>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+  if (loading) {
+    return <Spin size="large" style={{ display: 'block', margin: '80px auto' }} />;
+  }
 
   return (
     <div>
       <h2 style={{ marginBottom: 16 }}>模型配置</h2>
 
-      {activeConfig && (
-        <Descriptions
-          title="当前活跃配置"
-          bordered
-          column={{ xs: 1, sm: 2, md: 3, lg: 4 }}
-          style={{ marginBottom: 24 }}
-        >
-          <Descriptions.Item label="提供商">{activeConfig.provider}</Descriptions.Item>
-          <Descriptions.Item label="模型">{activeConfig.modelName}</Descriptions.Item>
-          <Descriptions.Item label="Base URL">{activeConfig.baseUrl}</Descriptions.Item>
-          <Descriptions.Item label="温度">{activeConfig.temperature}</Descriptions.Item>
-          <Descriptions.Item label="Max Tokens">{activeConfig.maxTokens}</Descriptions.Item>
-        </Descriptions>
-      )}
-
-      <div style={{ marginBottom: 16 }}>
-        <Button type="primary" onClick={() => handleOpenModal()}>
-          新增配置
-        </Button>
-      </div>
-
-      <Table<LLMConfig>
-        rowKey="id"
-        columns={columns}
-        dataSource={configs}
-        loading={loading}
-      />
-
-      <Modal
-        title={editingId ? '编辑配置' : '新增配置'}
-        open={modalOpen}
-        onOk={handleSubmit}
-        onCancel={() => setModalOpen(false)}
-        destroyOnClose
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item name="name" label="名称" rules={[{ required: true }]}>
-            <Input placeholder="例如: GPT-4" />
-          </Form.Item>
-          <Form.Item name="provider" label="提供商" rules={[{ required: true }]}>
+      <Card title="当前 LLM 配置" style={{ marginBottom: 24 }}>
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
+          <Form.Item name="provider" label="提供商" rules={[{ required: true, message: '请选择提供商' }]}>
             <Select options={PROVIDER_OPTIONS} />
           </Form.Item>
-          <Form.Item name="modelName" label="模型名称" rules={[{ required: true }]}>
-            <Input placeholder="例如: gpt-4o" />
+          <Form.Item name="model" label="模型名称" rules={[{ required: true, message: '请输入模型名称' }]}>
+            <Input placeholder="例如: deepseek-v4-pro / gpt-4o / claude-sonnet-4-20250514" />
           </Form.Item>
-          <Form.Item name="baseUrl" label="Base URL" rules={[{ required: true }]}>
-            <Input placeholder="例如: https://api.openai.com/v1" />
+          <Form.Item name="base_url" label="Base URL" rules={[{ required: true, message: '请输入 Base URL' }]}>
+            <Input placeholder="例如: https://api.deepseek.com" />
           </Form.Item>
-          <Form.Item name="apiKey" label="API Key">
-            <Input.Password placeholder={editingId ? '留空则不修改' : ''} />
+          <Form.Item name="api_key" label="API Key" tooltip="修改时填写新 Key,留空则保持不变">
+            <Input.Password placeholder="填写新的 API Key" />
           </Form.Item>
-          <Form.Item
-            name="temperature"
-            label="温度"
-            rules={[{ required: true }]}
-            initialValue={1}
-          >
-            <InputNumber min={0} max={2} step={0.1} style={{ width: '100%' }} />
+          <Form.Item name="temperature" label="Temperature" rules={[{ required: true }]}>
+            <InputNumber min={0} max={2} step={0.1} style={{ width: 200 }} />
           </Form.Item>
-          <Form.Item
-            name="maxTokens"
-            label="Max Tokens"
-            rules={[{ required: true }]}
-            initialValue={4096}
-          >
-            <InputNumber min={1} max={128000} style={{ width: '100%' }} />
+          <Form.Item name="max_tokens" label="Max Tokens" rules={[{ required: true }]}>
+            <InputNumber min={1} max={128000} style={{ width: 200 }} />
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" htmlType="submit" loading={saving}>
+              保存配置
+            </Button>
           </Form.Item>
         </Form>
-      </Modal>
+      </Card>
+
+      <Card title="说明">
+        <p>此配置直接读写云服务器上的 <code>~/.config/droidrun/config.yaml</code> 文件。</p>
+        <p>保存后会同步更新 config.yaml 中所有 LLM profile (manager / executor / fast_agent 等)。</p>
+      </Card>
     </div>
   );
 }

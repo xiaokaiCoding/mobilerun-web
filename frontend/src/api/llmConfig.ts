@@ -1,38 +1,18 @@
 import { apiClient } from './client';
-import type { LLMConfig } from '../types';
 
-export async function getLLMConfigs(): Promise<LLMConfig[]> {
-  const { data } = await apiClient.get<LLMConfig[]>('/llm-configs');
-  return data;
+export interface LLMConfigData {
+  provider: string;
+  model: string;
+  base_url: string;
+  api_key: string;
+  temperature: number;
+  max_tokens: number;
 }
 
-export async function getActiveLLMConfig(): Promise<LLMConfig> {
-  const { data } = await apiClient.get<LLMConfig>('/llm-configs/active');
-  return data;
+export function getLLMConfig() {
+  return apiClient.get<LLMConfigData>('/llm-config').then(r => r.data);
 }
 
-export async function createLLMConfig(
-  payload: Omit<LLMConfig, 'id' | 'createdAt' | 'isActive'>,
-): Promise<LLMConfig> {
-  const { data } = await apiClient.post<LLMConfig>('/llm-configs', payload);
-  return data;
-}
-
-export async function updateLLMConfig(
-  id: string,
-  payload: Partial<LLMConfig>,
-): Promise<LLMConfig> {
-  const { data } = await apiClient.put<LLMConfig>(`/llm-configs/${id}`, payload);
-  return data;
-}
-
-export async function activateLLMConfig(id: string): Promise<LLMConfig> {
-  const { data } = await apiClient.put<LLMConfig>(
-    `/llm-configs/${id}/activate`,
-  );
-  return data;
-}
-
-export async function deleteLLMConfig(id: string): Promise<void> {
-  await apiClient.delete(`/llm-configs/${id}`);
+export function updateLLMConfig(data: Partial<LLMConfigData>) {
+  return apiClient.put('/llm-config', data);
 }
