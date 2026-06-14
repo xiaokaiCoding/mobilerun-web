@@ -7,7 +7,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -271,11 +271,16 @@ async def delete_execution(
     exec_id: int,
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    """Delete an execution record."""
+    """Delete an execution record and its related events."""
     result = await db.execute(select(Execution).where(Execution.id == exec_id))
     execution = result.scalar_one_or_none()
     if not execution:
         raise HTTPException(status_code=404, detail="Execution not found")
 
+    # Delete related events first (MySQL CASCADE not visible to SQLAlchemy)
+    await db.execute(
+        text("DELETE FROM execution_events WHERE execution_id = :id"),
+        {"id": exec_id},
+    )
     await db.delete(execution)
     await db.commit()
