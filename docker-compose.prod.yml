@@ -16,6 +16,8 @@ services:
       ANDROID_ADB_SERVER_PORT: 5037
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    volumes:
+      - /root/.config/droidrun/config.yaml:/root/.config/droidrun/config.yaml
     networks:
       - default
       - nav-station

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Table, Tag, Button, Drawer, Descriptions, message, Space, Modal, Form, Input, Select } from 'antd';
+import { Table, Tag, Button, Drawer, Descriptions, message, Space, Modal, Form, Input, Select, Alert, Card } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { getDevices, scanDevices, registerDevice } from '../api/devices';
@@ -123,6 +123,29 @@ export default function DevicePage() {
           </Button>
         </Space>
       </div>
+
+      <Card title="如何注册设备" size="small" style={{ marginBottom: 16 }}>
+        <Alert
+          type="info"
+          showIcon
+          message="3 种方式注册设备"
+          description={
+            <ol style={{ margin: '8px 0 0 20px', paddingLeft: 0 }}>
+              <li><b>注册设备</b>: 手动填写序列号(如 <code>192.168.1.18:5555</code>)、设备名称和型号</li>
+              <li><b>扫描设备</b>: 通过 ADB 自动扫描当前连接的无线设备并自动注册</li>
+              <li><b>无线 adb 连接步骤</b>:
+                <ul style={{ margin: '4px 0 0 20px' }}>
+                  <li>数据线连接手机 → 手机开启 USB 调试</li>
+                  <li>执行 <code>adb -s &lt;serial&gt; tcpip 5555</code> 切换到无线模式</li>
+                  <li>拔掉数据线,手机保持在同一 WiFi</li>
+                  <li>在「注册设备」中填写 <code>&lt;手机WiFi IP&gt;:5555</code></li>
+                </ul>
+              </li>
+            </ol>
+          }
+          style={{ textAlign: 'left' }}
+        />
+      </Card>
       <Table<Device>
         rowKey="id"
         columns={columns}
