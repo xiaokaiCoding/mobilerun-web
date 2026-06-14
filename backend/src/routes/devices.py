@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import get_db
@@ -18,11 +18,22 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/devices", tags=["devices"])
 
 
-@router.get("", response_model=list[DeviceResponse])
-async def list_devices(db: AsyncSession = Depends(get_db)) -> list[Device]:
-    """List all devices ordered by creation time descending."""
-    result = await db.execute(select(Device).order_by(Device.created_at.desc()))
-    return list(result.scalars().all())
+@router.get("", response_model=dict)
+async def list_devices(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """List devices with pagination."""
+    total = await db.execute(select(func.count(Device.id)))
+    total = total.scalar() or 0
+
+    stmt = select(Device).order_by(Device.created_at.desc())
+    stmt = stmt.offset((page - 1) * page_size).limit(page_size)
+    result = await db.execute(stmt)
+    items = list(result.scalars().all())
+
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 
 @router.post("/scan", response_model=list[DeviceResponse])

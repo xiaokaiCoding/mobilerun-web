@@ -7,10 +7,17 @@ export interface CreateExecutionPayload {
   llm_config_id?: number | null;
 }
 
+export interface PagedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
 export async function getExecutions(
-  params?: Record<string, string>,
-): Promise<Execution[]> {
-  const { data } = await apiClient.get<Execution[]>('/executions', { params });
+  params?: { page?: number; page_size?: number; status?: string },
+): Promise<PagedResponse<Execution>> {
+  const { data } = await apiClient.get<PagedResponse<Execution>>('/executions', { params });
   return data;
 }
 

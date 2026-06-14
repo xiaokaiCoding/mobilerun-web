@@ -1,8 +1,17 @@
 import { apiClient } from './client';
 import type { Device } from '../types';
 
-export async function getDevices(): Promise<Device[]> {
-  const { data } = await apiClient.get<Device[]>('/devices');
+export interface PagedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export async function getDevices(
+  params?: { page?: number; page_size?: number },
+): Promise<PagedResponse<Device>> {
+  const { data } = await apiClient.get<PagedResponse<Device>>('/devices', { params });
   return data;
 }
 

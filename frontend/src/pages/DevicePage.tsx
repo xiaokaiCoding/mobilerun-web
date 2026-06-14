@@ -26,8 +26,8 @@ export default function DevicePage() {
   const fetchDevices = async () => {
     setLoading(true);
     try {
-      const list = await getDevices();
-      setDevices(list);
+      const result = await getDevices({ page_size: 100 });
+      setDevices(result.items);
     } catch {
       message.error('获取设备列表失败');
     } finally {

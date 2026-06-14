@@ -23,14 +23,29 @@ router = APIRouter(prefix="/executions", tags=["executions"])
 active_executions: dict[int, dict[str, Any]] = {}
 
 
-@router.get("", response_model=list[ExecutionResponse])
+@router.get("", response_model=dict)
 async def list_executions(
     device_id: int | None = Query(None),
     test_case_id: int | None = Query(None),
     status: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-) -> list[Execution]:
-    """List recent executions with optional filters."""
+) -> dict:
+    """List executions with pagination and filters."""
+    # Build base query for count
+    count_stmt = select(func.count(Execution.id))
+    if device_id is not None:
+        count_stmt = count_stmt.where(Execution.device_id == device_id)
+    if test_case_id is not None:
+        count_stmt = count_stmt.where(Execution.test_case_id == test_case_id)
+    if status:
+        count_stmt = count_stmt.where(Execution.status == status)
+
+    count_result = await db.execute(count_stmt)
+    total = count_result.scalar() or 0
+
+    # Build paginated query
     stmt = (
         select(Execution)
         .options(selectinload(Execution.device), selectinload(Execution.test_case))
@@ -43,8 +58,11 @@ async def list_executions(
     if status:
         stmt = stmt.where(Execution.status == status)
 
+    stmt = stmt.offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(stmt)
-    return list(result.scalars().all())
+    items = list(result.scalars().all())
+
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 
 @router.post("", response_model=ExecutionResponse, status_code=201)

@@ -116,6 +116,14 @@ class TestCaseResponse(BaseModel):
 
 # ─── Execution ────────────────────────────────────────────────────────────
 
+class PagedResponse(BaseModel):
+    """Generic paged response."""
+    items: list
+    total: int
+    page: int
+    page_size: int
+
+
 class ExecutionCreate(BaseModel):
     device_id: int
     test_case_id: int

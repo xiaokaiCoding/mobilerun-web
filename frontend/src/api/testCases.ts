@@ -1,8 +1,17 @@
 import { apiClient } from './client';
 import type { TestCase, Execution } from '../types';
 
-export async function getTestCases(): Promise<TestCase[]> {
-  const { data } = await apiClient.get<TestCase[]>('/test-cases');
+export interface PagedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export async function getTestCases(
+  params?: { page?: number; page_size?: number; status?: string },
+): Promise<PagedResponse<TestCase>> {
+  const { data } = await apiClient.get<PagedResponse<TestCase>>('/test-cases', { params });
   return data;
 }
 

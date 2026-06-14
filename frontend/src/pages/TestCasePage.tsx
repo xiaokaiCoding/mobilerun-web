@@ -40,12 +40,14 @@ export default function TestCasePage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyData, setHistoryData] = useState<Execution[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 20, total: 0 });
 
-  const fetchCases = async () => {
+  const fetchCases = async (page = 1, pageSize = 20) => {
     setLoading(true);
     try {
-      const list = await getTestCases();
-      setCases(list);
+      const result = await getTestCases({ page, page_size: pageSize });
+      setCases(result.items);
+      setPagination({ current: result.page, pageSize: result.page_size, total: result.total });
     } catch {
       message.error('获取用例列表失败');
     } finally {
@@ -95,7 +97,7 @@ export default function TestCasePage() {
     try {
       await deleteTestCase(id);
       message.success('删除成功');
-      await fetchCases();
+      await fetchCases(pagination.current, pagination.pageSize);
     } catch {
       message.error('删除失败');
     }
@@ -226,6 +228,15 @@ export default function TestCasePage() {
         columns={columns}
         dataSource={cases}
         loading={loading}
+        pagination={{
+          current: pagination.current,
+          pageSize: pagination.pageSize,
+          total: pagination.total,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total) => `共 ${total} 条`,
+          onChange: (page, pageSize) => fetchCases(page, pageSize),
+        }}
       />
 
       <Modal

@@ -3,7 +3,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -16,17 +16,28 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/test-cases", tags=["test-cases"])
 
 
-@router.get("", response_model=list[TestCaseResponse])
+@router.get("", response_model=dict)
 async def list_test_cases(
     status: str | None = Query(None, description="Filter by status"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-) -> list[TestCase]:
-    """List test cases with optional status filter."""
+) -> dict:
+    """List test cases with pagination and filters."""
+    count_stmt = select(func.count(TestCase.id))
+    if status:
+        count_stmt = count_stmt.where(TestCase.status == status)
+    count_result = await db.execute(count_stmt)
+    total = count_result.scalar() or 0
+
     stmt = select(TestCase).order_by(TestCase.created_at.desc())
     if status:
         stmt = stmt.where(TestCase.status == status)
+    stmt = stmt.offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(stmt)
-    return list(result.scalars().all())
+    items = list(result.scalars().all())
+
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 
 @router.post("", response_model=TestCaseResponse, status_code=201)

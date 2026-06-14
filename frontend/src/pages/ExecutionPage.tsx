@@ -37,12 +37,14 @@ export default function ExecutionPage() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [llmConfigs, setLlmConfigs] = useState<LLMConfigData[]>([]);
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 20, total: 0 });
 
-  const fetchExecutions = async () => {
+  const fetchExecutions = async (page = 1, pageSize = 20) => {
     setLoading(true);
     try {
-      const list = await getExecutions();
-      setExecutions(list);
+      const result = await getExecutions({ page, page_size: pageSize });
+      setExecutions(result.items);
+      setPagination({ current: result.page, pageSize: result.page_size, total: result.total });
     } catch {
       message.error('获取执行列表失败');
     } finally {
@@ -53,12 +55,12 @@ export default function ExecutionPage() {
   const fetchOptions = async () => {
     try {
       const [d, tc, lc] = await Promise.all([
-        getDevices(),
-        getTestCases(),
+        getDevices({ page_size: 100 }),
+        getTestCases({ page_size: 100 }),
         getLLMConfig().then(c => c ? [c] : []),
       ]);
-      setDevices(d);
-      setTestCases(tc);
+      setDevices(d.items);
+      setTestCases(tc.items);
       setLlmConfigs(lc);
     } catch {
       // Options load silently; user will see empty selects
@@ -152,7 +154,7 @@ export default function ExecutionPage() {
               try {
                 await stopExecution(String(record.id));
                 message.success('已停止');
-                await fetchExecutions();
+                await fetchExecutions(pagination.current, pagination.pageSize);
               } catch {
                 message.error('停止失败');
               }
@@ -165,7 +167,7 @@ export default function ExecutionPage() {
               try {
                 await deleteExecution(String(record.id));
                 message.success('删除成功');
-                await fetchExecutions();
+                await fetchExecutions(pagination.current, pagination.pageSize);
               } catch {
                 message.error('删除失败');
               }
@@ -198,6 +200,15 @@ export default function ExecutionPage() {
         columns={columns}
         dataSource={executions}
         loading={loading}
+        pagination={{
+          current: pagination.current,
+          pageSize: pagination.pageSize,
+          total: pagination.total,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total) => `共 ${total} 条`,
+          onChange: (page, pageSize) => fetchExecutions(page, pageSize),
+        }}
       />
 
       <Modal
