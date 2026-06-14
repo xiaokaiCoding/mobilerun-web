@@ -9,6 +9,7 @@ import {
   Spin,
   Result,
   Card,
+  Collapse,
 } from 'antd';
 import { ArrowLeftOutlined, StopOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -31,6 +32,7 @@ export default function ExecutionDetailPage() {
   const [execution, setExecution] = useState<Execution | null>(null);
   const [loading, setLoading] = useState(true);
   const [stopping, setStopping] = useState(false);
+  const [reportExpanded, setReportExpanded] = useState(false);
   const [events, setEvents] = useState<ExecutionEvent[]>([]);
   const eventsRef = useRef<ExecutionEvent[]>([]);
   const [sseUrl, setSseUrl] = useState<string | null>(null);
@@ -187,19 +189,28 @@ export default function ExecutionDetailPage() {
 
       {execution.trajectory_path && (execution.status === 'success' || execution.status === 'failed' || execution.status === 'stopped') && (
         <Card title="执行报告" size="small" style={{ marginBottom: 16 }}>
-          <div style={{ textAlign: 'center' }}>
-            <img
-              src={`${execution.trajectory_path}/screenshots/trajectory.gif`.replace('/root/mobilerun-web', '/trajectories')}
-              alt="执行过程动画"
-              style={{ maxWidth: '100%', maxHeight: '60vh', borderRadius: 8 }}
-              onError={(e) => {
-                // If GIF doesn't exist, show first screenshot
-                const img = e.target as HTMLImageElement;
-                img.onerror = null;
-                img.src = `${execution.trajectory_path}/screenshots/0000.png`.replace('/root/mobilerun-web', '/trajectories');
-              }}
-            />
-          </div>
+          <Collapse
+            activeKey={reportExpanded ? ['1'] : []}
+            onChange={(keys) => setReportExpanded(Array.isArray(keys) && keys.includes('1'))}
+            items={[{
+              key: '1',
+              label: '执行过程动画 (点击展开)',
+              children: (
+                <div style={{ textAlign: 'center' }}>
+                  <img
+                    src={`${execution.trajectory_path!.replace(/\/$/, '')}/screenshots/trajectory.gif`.replace('/root/mobilerun-web/trajectories', '/trajectories')}
+                    alt="执行过程动画"
+                    style={{ maxWidth: 400, maxHeight: '60vh', borderRadius: 8, objectFit: 'contain' }}
+                    onError={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      img.onerror = null;
+                      img.src = `${execution.trajectory_path!.replace(/\/$/, '')}/screenshots/0000.png`.replace('/root/mobilerun-web/trajectories', '/trajectories');
+                    }}
+                  />
+                </div>
+              ),
+            }]}
+          />
         </Card>
       )}
 
