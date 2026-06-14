@@ -264,3 +264,18 @@ async def stop_execution(
     await db.commit()
     await db.refresh(execution)
     return execution
+
+
+@router.delete("/{exec_id}", status_code=204)
+async def delete_execution(
+    exec_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Delete an execution record."""
+    result = await db.execute(select(Execution).where(Execution.id == exec_id))
+    execution = result.scalar_one_or_none()
+    if not execution:
+        raise HTTPException(status_code=404, detail="Execution not found")
+
+    await db.delete(execution)
+    await db.commit()

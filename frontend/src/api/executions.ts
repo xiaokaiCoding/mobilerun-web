@@ -30,6 +30,10 @@ export async function stopExecution(id: string): Promise<void> {
   await apiClient.post(`/executions/${id}/stop`);
 }
 
+export async function deleteExecution(id: string): Promise<void> {
+  await apiClient.delete(`/executions/${id}`);
+}
+
 export async function getExecutionEvents(id: string): Promise<Array<{
   id?: number;
   executionId?: number;

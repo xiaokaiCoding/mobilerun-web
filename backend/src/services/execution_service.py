@@ -15,6 +15,75 @@ from src.utils.event_serializer import serialize_event_to_dict
 logger = logging.getLogger(__name__)
 
 
+async def _take_screenshot(serial: str, adb_host: str, adb_port: int) -> str | None:
+    """Take a screenshot from the device and return base64 PNG."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "adb", "-H", adb_host, "-P", str(adb_port),
+            "-s", serial, "shell", "screencap", "-p",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await proc.communicate()
+        if proc.returncode == 0 and stdout:
+            return base64.b64encode(stdout).decode()
+    except Exception:
+        logger.exception("Failed to take screenshot")
+    return None
+
+
+async def _save_screenshot_to_db(db_url: str, execution_id: int, screenshot_b64: str) -> None:
+    """Save base64 screenshot to the executions table."""
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(
+        None, _persist_screenshot, db_url, execution_id, screenshot_b64
+    )
+
+
+async def _save_trajectory_to_db(db_url: str, execution_id: int, traj_dir: str) -> None:
+    """Save trajectory path to the executions table."""
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(
+        None, _persist_trajectory, db_url, execution_id, traj_dir
+    )
+
+
+def _persist_trajectory(db_url: str, execution_id: int, traj_dir: str) -> None:
+    sync_url = db_url.replace("mysql+aiomysql://", "mysql+pymysql://")
+    engine = create_engine(sync_url, pool_size=1, max_overflow=0, pool_recycle=300)
+    session = sessionmaker(bind=engine)()
+    try:
+        session.execute(
+            text("UPDATE executions SET trajectory_path = :path WHERE id = :id"),
+            {"path": traj_dir, "id": execution_id},
+        )
+        session.commit()
+    except Exception:
+        logger.exception("Failed to save trajectory path for execution %d", execution_id)
+        session.rollback()
+    finally:
+        session.close()
+        engine.dispose()
+
+
+def _persist_screenshot(db_url: str, execution_id: int, screenshot_b64: str) -> None:
+    sync_url = db_url.replace("mysql+aiomysql://", "mysql+pymysql://")
+    engine = create_engine(sync_url, pool_size=1, max_overflow=0, pool_recycle=300)
+    session = sessionmaker(bind=engine)()
+    try:
+        session.execute(
+            text("UPDATE executions SET screenshot = :screenshot WHERE id = :id"),
+            {"screenshot": screenshot_b64, "id": execution_id},
+        )
+        session.commit()
+    except Exception:
+        logger.exception("Failed to save screenshot for execution %d", execution_id)
+        session.rollback()
+    finally:
+        session.close()
+        engine.dispose()
+
+
 def _get_sync_session(db_url: str) -> Any:
     """Create a synchronous SQLAlchemy session for event persistence.
 
@@ -154,6 +223,17 @@ async def run_execution(
         config.device.serial = device_serial
         config.agent.max_steps = max_steps
 
+        # Set trajectory path per execution
+        import os
+        traj_dir = f"/root/mobilerun-web/trajectories/exec_{execution_id}"
+        os.makedirs(traj_dir, exist_ok=True)
+        config.logging.save_trajectory = "step"
+        config.logging.trajectory_path = traj_dir
+        config.logging.trajectory_gifs = True
+        logger.info("Trajectory config: save=%s, path=%s, gifs=%s",
+                     config.logging.save_trajectory, config.logging.trajectory_path, config.logging.trajectory_gifs)
+        logger.info("Trajectory path type: %s, is_dir: %s", type(traj_dir), os.path.isdir(traj_dir))
+
         # Apply LLM config to all profiles (only if llm_config has values)
         if llm_config:
             for profile_name in config.llm_profiles:
@@ -169,7 +249,11 @@ async def run_execution(
                 if llm_config.get("temperature") is not None:
                     profile.temperature = float(llm_config["temperature"])
 
+        from dataclasses import asdict
+        logger.info("Before MobileAgent: config.logging=%s", asdict(config.logging))
+
         agent = MobileAgent(goal=goal, config=config)
+        logger.info("After MobileAgent: config.logging=%s", asdict(config.logging))
         handler = agent.run()
 
         async for event in handler.stream_events():
@@ -208,6 +292,18 @@ async def run_execution(
             getattr(result, "reason", None),
             getattr(result, "steps", 0),
         )
+
+        # Save trajectory path to execution record (find actual subfolder)
+        try:
+            import glob
+            subfolders = glob.glob(f"{traj_dir}/*/")
+            if subfolders:
+                actual_path = subfolders[0]  # Should be only one subfolder
+                await _save_trajectory_to_db(db_url, execution_id, actual_path)
+        except Exception:
+            logger.exception("Failed to save trajectory path")
+
+        # Take final screenshot after execution completes (disabled, using trajectory screenshots instead)
 
     except Exception as e:
         logger.exception("Execution %d failed", execution_id)

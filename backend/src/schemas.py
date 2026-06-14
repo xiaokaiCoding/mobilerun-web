@@ -132,6 +132,8 @@ class ExecutionResponse(BaseModel):
     status: str
     goal: str
     result: Optional[str]
+    screenshot: Optional[str]
+    trajectory_path: Optional[str]
     steps_taken: int
     started_at: Optional[datetime]
     finished_at: Optional[datetime]

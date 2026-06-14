@@ -95,6 +95,8 @@ class Execution(Base):
     status = Column(String(32), nullable=False, server_default="pending")
     goal = Column(Text, nullable=False)
     result = Column(Text, nullable=True)
+    screenshot = Column(Text, nullable=True)  # base64 PNG screenshot
+    trajectory_path = Column(String(512), nullable=True)  # path to trajectory folder
     steps_taken = Column(Integer, nullable=False, server_default="0")
     started_at = Column(DateTime, nullable=True)
     finished_at = Column(DateTime, nullable=True)

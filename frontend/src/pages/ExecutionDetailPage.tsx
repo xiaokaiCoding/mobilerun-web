@@ -8,6 +8,7 @@ import {
   message,
   Spin,
   Result,
+  Card,
 } from 'antd';
 import { ArrowLeftOutlined, StopOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -151,17 +152,17 @@ export default function ExecutionDetailPage() {
         style={{ marginBottom: 16 }}
       >
         <Descriptions.Item label="执行ID">{execution.id}</Descriptions.Item>
-        <Descriptions.Item label="设备ID">{execution.deviceId}</Descriptions.Item>
-        <Descriptions.Item label="用例ID">{execution.testCaseId}</Descriptions.Item>
-        <Descriptions.Item label="步骤数">{execution.stepsTaken}</Descriptions.Item>
+        <Descriptions.Item label="设备ID">{execution.device_id}</Descriptions.Item>
+        <Descriptions.Item label="用例ID">{execution.test_case_id}</Descriptions.Item>
+        <Descriptions.Item label="步骤数">{execution.steps_taken}</Descriptions.Item>
         <Descriptions.Item label="开始时间">
-          {execution.startedAt
-            ? dayjs(execution.startedAt).format('YYYY-MM-DD HH:mm:ss')
+          {execution.started_at
+            ? dayjs(execution.started_at).format('YYYY-MM-DD HH:mm:ss')
             : '-'}
         </Descriptions.Item>
         <Descriptions.Item label="结束时间">
-          {execution.finishedAt
-            ? dayjs(execution.finishedAt).format('YYYY-MM-DD HH:mm:ss')
+          {execution.finished_at
+            ? dayjs(execution.finished_at).format('YYYY-MM-DD HH:mm:ss')
             : '-'}
         </Descriptions.Item>
         {execution.result && (
@@ -182,6 +183,34 @@ export default function ExecutionDetailPage() {
             停止执行
           </Button>
         </div>
+      )}
+
+      {execution.trajectory_path && (execution.status === 'success' || execution.status === 'failed' || execution.status === 'stopped') && (
+        <Card title="执行报告" size="small" style={{ marginBottom: 16 }}>
+          <div style={{ textAlign: 'center' }}>
+            <img
+              src={`${execution.trajectory_path}/screenshots/trajectory.gif`.replace('/root/mobilerun-web', '/trajectories')}
+              alt="执行过程动画"
+              style={{ maxWidth: '100%', maxHeight: '60vh', borderRadius: 8 }}
+              onError={(e) => {
+                // If GIF doesn't exist, show first screenshot
+                const img = e.target as HTMLImageElement;
+                img.onerror = null;
+                img.src = `${execution.trajectory_path}/screenshots/0000.png`.replace('/root/mobilerun-web', '/trajectories');
+              }}
+            />
+          </div>
+        </Card>
+      )}
+
+      {execution.screenshot && (execution.status === 'success' || execution.status === 'failed' || execution.status === 'stopped') && (
+        <Card title="执行完成后设备截图" size="small" style={{ marginBottom: 16 }}>
+          <img
+            src={`data:image/png;base64,${execution.screenshot}`}
+            alt="device screenshot"
+            style={{ maxWidth: '100%', borderRadius: 8 }}
+          />
+        </Card>
       )}
 
       <LogViewer events={events} />

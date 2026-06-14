@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Table,
   Button,
@@ -30,10 +31,11 @@ const statusMap: Record<TestCase['status'], { color: string; text: string }> = {
 };
 
 export default function TestCasePage() {
+  const navigate = useNavigate();
   const [cases, setCases] = useState<TestCase[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [form] = Form.useForm();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyData, setHistoryData] = useState<Execution[]>([]);
@@ -89,7 +91,7 @@ export default function TestCasePage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     try {
       await deleteTestCase(id);
       message.success('删除成功');
@@ -99,7 +101,7 @@ export default function TestCasePage() {
     }
   };
 
-  const handleViewHistory = async (id: string) => {
+  const handleViewHistory = async (id: number) => {
     setHistoryOpen(true);
     setHistoryLoading(true);
     try {
@@ -155,6 +157,14 @@ export default function TestCasePage() {
       width: 240,
       render: (_, record) => (
         <Space>
+          <Button size="small" type="primary" onClick={() => {
+            navigate('/executions');
+            setTimeout(() => {
+              (document.querySelector('[data-testid="new-execution"]') as HTMLElement)?.click();
+            }, 100);
+          }}>
+            执行
+          </Button>
           <Button size="small" onClick={() => handleOpenModal(record)}>
             编辑
           </Button>

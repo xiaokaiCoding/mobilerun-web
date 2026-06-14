@@ -10,10 +10,11 @@ import {
   Space,
   message,
   Input,
+  Popconfirm,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { getExecutions, createExecution } from '../api/executions';
+import { getExecutions, createExecution, stopExecution, deleteExecution } from '../api/executions';
 import { getDevices } from '../api/devices';
 import { getTestCases } from '../api/testCases';
 import { getLLMConfig, type LLMConfigData } from '../api/llmConfig';
@@ -85,21 +86,33 @@ export default function ExecutionPage() {
     }
   };
 
+  const getDeviceName = (deviceId: number) => {
+    const d = devices.find(d => d.id === deviceId);
+    return d ? `${d.name || ''} (${d.serial})`.trim() : deviceId;
+  };
+
+  const getTestCaseName = (testCaseId: number) => {
+    const tc = testCases.find(t => t.id === testCaseId);
+    return tc ? tc.name : testCaseId;
+  };
+
   const columns: ColumnsType<Execution> = [
-    { title: 'ID', dataIndex: 'id', key: 'id', width: 120 },
+    { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
     {
       title: '设备',
-      dataIndex: 'deviceId',
-      key: 'deviceId',
-      width: 160,
+      dataIndex: 'device_id',
+      key: 'device_id',
+      width: 180,
       ellipsis: true,
+      render: (deviceId: number) => getDeviceName(deviceId),
     },
     {
       title: '用例',
-      dataIndex: 'testCaseId',
-      key: 'testCaseId',
-      width: 160,
+      dataIndex: 'test_case_id',
+      key: 'test_case_id',
+      width: 180,
       ellipsis: true,
+      render: (testCaseId: number) => getTestCaseName(testCaseId),
     },
     {
       title: '状态',
@@ -113,14 +126,14 @@ export default function ExecutionPage() {
     },
     {
       title: '步骤数',
-      dataIndex: 'stepsTaken',
-      key: 'stepsTaken',
+      dataIndex: 'steps_taken',
+      key: 'steps_taken',
       width: 80,
     },
     {
       title: '开始时间',
-      dataIndex: 'startedAt',
-      key: 'startedAt',
+      dataIndex: 'started_at',
+      key: 'started_at',
       width: 180,
       render: (t?: string) =>
         t ? dayjs(t).format('YYYY-MM-DD HH:mm:ss') : '-',
@@ -128,11 +141,39 @@ export default function ExecutionPage() {
     {
       title: '操作',
       key: 'action',
-      width: 100,
+      width: 140,
       render: (_, record) => (
-        <Button size="small" onClick={() => navigate(`/executions/${record.id}`)}>
-          查看
-        </Button>
+        <Space>
+          <Button size="small" onClick={() => navigate(`/executions/${record.id}`)}>
+            查看
+          </Button>
+          {record.status === 'running' && (
+            <Popconfirm title="确认删除?" onConfirm={async () => {
+              try {
+                await stopExecution(String(record.id));
+                message.success('已停止');
+                await fetchExecutions();
+              } catch {
+                message.error('停止失败');
+              }
+            }}>
+              <Button size="small" danger>停止</Button>
+            </Popconfirm>
+          )}
+          {record.status !== 'running' && (
+            <Popconfirm title="确认删除?" onConfirm={async () => {
+              try {
+                await deleteExecution(String(record.id));
+                message.success('删除成功');
+                await fetchExecutions();
+              } catch {
+                message.error('删除失败');
+              }
+            }}>
+              <Button size="small" danger>删除</Button>
+            </Popconfirm>
+          )}
+        </Space>
       ),
     },
   ];

@@ -1,5 +1,5 @@
 export interface Device {
-  id: string;
+  id: number;
   serial: string;
   name: string;
   model: string;
@@ -10,7 +10,7 @@ export interface Device {
 }
 
 export interface LLMConfig {
-  id: string;
+  id: number;
   name: string;
   provider: string;
   modelName: string;
@@ -23,7 +23,7 @@ export interface LLMConfig {
 }
 
 export interface TestCase {
-  id: string;
+  id: number;
   name: string;
   description: string;
   goal: string;
@@ -34,16 +34,19 @@ export interface TestCase {
 }
 
 export interface Execution {
-  id: string;
-  testCaseId: string;
-  deviceId: string;
+  id: number;
+  test_case_id: number;
+  device_id: number;
+  llm_config_id: number | null;
   status: 'pending' | 'running' | 'success' | 'failed' | 'stopped';
   goal: string;
   result?: string;
-  stepsTaken: number;
-  startedAt?: string;
-  finishedAt?: string;
-  createdAt: string;
+  screenshot?: string;
+  trajectory_path?: string;
+  steps_taken: number;
+  started_at?: string;
+  finished_at?: string;
+  created_at: string;
 }
 
 export interface ExecutionEvent {

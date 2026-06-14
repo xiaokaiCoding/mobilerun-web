@@ -13,24 +13,24 @@ export async function createTestCase(
   return data;
 }
 
-export async function getTestCase(id: string): Promise<TestCase> {
+export async function getTestCase(id: number | string): Promise<TestCase> {
   const { data } = await apiClient.get<TestCase>(`/test-cases/${id}`);
   return data;
 }
 
 export async function updateTestCase(
-  id: string,
+  id: number | string,
   payload: Partial<TestCase>,
 ): Promise<TestCase> {
   const { data } = await apiClient.put<TestCase>(`/test-cases/${id}`, payload);
   return data;
 }
 
-export async function deleteTestCase(id: string): Promise<void> {
+export async function deleteTestCase(id: number | string): Promise<void> {
   await apiClient.delete(`/test-cases/${id}`);
 }
 
-export async function getTestCaseHistory(id: string): Promise<Execution[]> {
+export async function getTestCaseHistory(id: number | string): Promise<Execution[]> {
   const { data } = await apiClient.get<Execution[]>(
     `/test-cases/${id}/history`,
   );
