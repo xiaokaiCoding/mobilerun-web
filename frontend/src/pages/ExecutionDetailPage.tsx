@@ -40,7 +40,7 @@ export default function ExecutionDetailPage() {
       const data = await getExecution(id);
       setExecution(data);
       if (data.status === 'running') {
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
         setSseUrl(`${baseUrl}/executions/${id}/stream`);
       }
     } catch {

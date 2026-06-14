@@ -9,6 +9,7 @@ import {
   Tag,
   Space,
   message,
+  Input,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -71,7 +72,10 @@ export default function ExecutionPage() {
   const handleCreate = async () => {
     try {
       const values = await form.validateFields();
-      const execution = await createExecution(values);
+      const execution = await createExecution({
+        testCaseId: values.testCaseId,
+        deviceId: values.deviceId,
+      });
       message.success('执行已创建');
       setModalOpen(false);
       navigate(`/executions/${execution.id}`);
@@ -187,12 +191,10 @@ export default function ExecutionPage() {
               }))}
             />
           </Form.Item>
-          <Form.Item name="llmConfigId" label="LLM配置 (可选)">
-            <Select
-              allowClear
-              placeholder={llmConfigs.length > 0 ? `当前: ${llmConfigs[0].model} (${llmConfigs[0].provider})` : '暂无配置'}
-              disabled={llmConfigs.length === 0}
-              value={null}
+          <Form.Item label="LLM配置">
+            <Input
+              disabled
+              value={llmConfigs.length > 0 ? `${llmConfigs[0].model} (${llmConfigs[0].provider})` : '暂无配置(请在模型配置页设置)'}
             />
           </Form.Item>
         </Form>
