@@ -7,29 +7,58 @@ interface LogViewerProps {
 }
 
 const typeColors: Record<string, string> = {
-  ToolExecutionEvent: '#1890ff',
+  StartEvent: '#52c41a',
+  FastAgentInputEvent: '#1890ff',
+  FastAgentExecuteEvent: '#13c2c2',
+  FastAgentResponseEvent: '#722ed1',
+  FastAgentToolCallEvent: '#faad14',
+  FastAgentOutputEvent: '#fa8c16',
+  FastAgentEndEvent: '#52c41a',
+  RecordUIStateEvent: '#888',
   ScreenshotEvent: '#722ed1',
   ResultEvent: '#52c41a',
   ErrorEvent: '#ff4d4f',
-  NavigationEvent: '#faad14',
-  TapEvent: '#13c2c2',
-  ScrollEvent: '#eb2f96',
-  InputEvent: '#fa541c',
 };
 
 function getEventSummary(event: ExecutionEvent): string {
   const d = event.eventData || {};
   switch (event.eventType) {
-    case 'ToolExecutionEvent':
-      return `Tool: ${d.toolName ?? 'unknown'} | Args: ${JSON.stringify(d.args ?? {}).slice(0, 120)}`;
-    case 'ScreenshotEvent':
-      return `Screenshot captured${(d.base64 as string | undefined) ? ' (thumbnail available)' : ''}`;
+    case 'FastAgentToolCallEvent':
+    case 'ToolExecutionEvent': {
+      const toolName = d.tool_name ?? d.toolName ?? 'unknown';
+      const args = d.tool_args ?? d.toolArgs ?? d.args ?? d;
+      return `Tool: ${toolName} | ${JSON.stringify(args).slice(0, 150)}`;
+    }
+    case 'FastAgentResponseEvent':
+      return `Thought: ${d.thought ?? d.response ?? ''}`.slice(0, 200);
+    case 'FastAgentOutputEvent':
+      return `Output: ${JSON.stringify(d.output ?? d).slice(0, 200)}`;
+    case 'FastAgentInputEvent':
+      return `Input received`;
+    case 'FastAgentExecuteEvent':
+      return `Executing: ${d.instruction ?? d.command ?? ''}`.slice(0, 200);
+    case 'FastAgentEndEvent':
+      return `Agent finished: ${d.success ? 'success' : (d.reason ?? 'unknown')}`;
+    case 'ScreenshotEvent': {
+      const hasImage = d.screenshot_base64 || d.screenshot;
+      return `Screenshot captured${hasImage ? ' (image)' : ''}`;
+    }
+    case 'RecordUIStateEvent': {
+      const uiState = d.ui_state;
+      const count = Array.isArray(uiState) ? uiState.length : 0;
+      return `UI state recorded (${count} elements)`;
+    }
     case 'ResultEvent':
-      return `Result: ${d.summary ?? d.message ?? JSON.stringify(d).slice(0, 200)}`;
+      return `Result: ${d.summary ?? d.message ?? d.reason ?? JSON.stringify(d).slice(0, 200)}`;
     case 'ErrorEvent':
       return `Error: ${d.message ?? d.error ?? 'unknown error'}`;
-    default:
+    case 'StartEvent':
+      return `Execution started`;
+    default: {
+      const keys = Object.keys(d);
+      if (keys.length === 0) return `(no data)`;
       return JSON.stringify(d).slice(0, 200);
+    }
   }
 }
 
@@ -56,7 +85,7 @@ export default function LogViewer({ events }: LogViewerProps) {
           fontSize: 14,
         }}
       >
-        等待事件...
+        暂无执行日志
       </div>
     );
   }
@@ -78,12 +107,12 @@ export default function LogViewer({ events }: LogViewerProps) {
     >
       {events.map((event) => {
         const color = typeColors[event.eventType] || '#888';
-        const timestamp = dayjs(event.createdAt).format('HH:mm:ss.SSS');
+        const timestamp = dayjs(event.createdAt).format('HH:mm:ss');
         const summary = getEventSummary(event);
 
         return (
           <div
-            key={event.id ?? `${event.seqNo}-${event.createdAt}`}
+            key={event.id ?? `${event.seqNo}-${event.eventType}`}
             style={{
               display: 'flex',
               alignItems: 'flex-start',
@@ -92,14 +121,14 @@ export default function LogViewer({ events }: LogViewerProps) {
               borderBottom: '1px solid #2a2a2a',
             }}
           >
-            <span style={{ color: '#666', flexShrink: 0, minWidth: 90 }}>
+            <span style={{ color: '#666', flexShrink: 0, minWidth: 70 }}>
               {timestamp}
             </span>
             <span
               style={{
                 color,
                 flexShrink: 0,
-                minWidth: 140,
+                minWidth: 160,
                 fontWeight: 600,
               }}
             >

@@ -46,8 +46,8 @@ export interface Execution {
 }
 
 export interface ExecutionEvent {
-  id: string;
-  executionId: string;
+  id: string | number;
+  executionId: string | number;
   eventType: string;
   eventData: Record<string, unknown>;
   seqNo: number;

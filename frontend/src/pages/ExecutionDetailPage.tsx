@@ -11,7 +11,7 @@ import {
 } from 'antd';
 import { ArrowLeftOutlined, StopOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { getExecution, stopExecution } from '../api/executions';
+import { getExecution, stopExecution, getExecutionEvents } from '../api/executions';
 import { useSSE } from '../hooks/useSSE';
 import LogViewer from '../components/LogViewer';
 import type { Execution, ExecutionEvent } from '../types';
@@ -42,6 +42,23 @@ export default function ExecutionDetailPage() {
       if (data.status === 'running') {
         const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
         setSseUrl(`${baseUrl}/executions/${id}/stream`);
+      } else if (data.status !== 'pending' && eventsRef.current.length === 0) {
+        // Load persisted events from DB for completed executions
+        try {
+          const dbEvents = await getExecutionEvents(id);
+          const mapped: ExecutionEvent[] = dbEvents.map((e) => ({
+            id: String(e.id ?? ''),
+            executionId: String(e.executionId ?? ''),
+            eventType: e.eventType,
+            eventData: e.eventData ?? {},
+            seqNo: e.seqNo ?? 0,
+            createdAt: e.createdAt ?? new Date().toISOString(),
+          }));
+          eventsRef.current = mapped;
+          setEvents(mapped);
+        } catch {
+          // Ignore
+        }
       }
     } catch {
       message.error('获取执行详情失败');
@@ -58,18 +75,21 @@ export default function ExecutionDetailPage() {
 
   const handleSSEEvent = useCallback((data: unknown) => {
     try {
-      let event: ExecutionEvent;
-      if (typeof data === 'string') {
-        event = JSON.parse(data);
-      } else {
-        event = data as ExecutionEvent;
-      }
+      const raw = typeof data === 'string' ? JSON.parse(data) : data;
+      const event: ExecutionEvent = {
+        id: raw.seq,
+        executionId: Number(id || 0),
+        eventType: raw.type || 'Unknown',
+        eventData: raw.data || {},
+        seqNo: raw.seq || 0,
+        createdAt: new Date().toISOString(),
+      };
       eventsRef.current = [...eventsRef.current, event];
       setEvents([...eventsRef.current]);
     } catch {
       // Ignore parse errors
     }
-  }, []);
+  }, [id]);
 
   const { connected } = useSSE(sseUrl, handleSSEEvent, {
     autoReconnect: true,
