@@ -41,6 +41,7 @@ services:
     restart: always
     depends_on:
       - frontend
+      - ws-scrcpy
     ports:
       - "${HTTP_PORT:-81}:80"
     volumes:
@@ -49,6 +50,18 @@ services:
     configs:
       - source: nginx_conf
         target: /etc/nginx/conf.d/default.conf
+
+  ws-scrcpy:
+    image: docker.io/scavin/ws-scrcpy:latest
+    container_name: mobilerun-ws-scrcpy
+    restart: always
+    environment:
+      - ADB_HOST=host.docker.internal
+      - ADB_PORT=5037
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
 
 networks:
   default:
@@ -99,5 +112,14 @@ configs:
               proxy_cache off;
               proxy_read_timeout 86400s;
               chunked_transfer_encoding on;
+          }
+
+          location /ws-scrcpy/ {
+              proxy_pass http://ws-scrcpy:8000/;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $$http_upgrade;
+              proxy_set_header Connection "upgrade";
+              proxy_set_header Host $$host;
+              proxy_set_header X-Real-IP $$remote_addr;
           }
       }

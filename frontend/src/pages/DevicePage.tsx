@@ -279,23 +279,14 @@ export default function DevicePage() {
         title={`远程控制: ${remoteDevice?.name || remoteDevice?.serial || ''}`}
         open={!!remoteDevice}
         onCancel={() => setRemoteDevice(null)}
-        footer={[<Button key="close" onClick={() => setRemoteDevice(null)}>关闭</Button>]}
-        width={600}
+        footer={null}
+        width="90vw"
+        style={{ top: 20 }}
       >
-        <Alert
-          type="info"
-          message="远程控制功能开发中"
-          description={
-            <div>
-              <p>ws-scrcpy 集成方案调研中，预计后续版本支持。</p>
-              <p>当前可通过以下方式手动控制设备:</p>
-              <ol>
-                <li>使用 <code>adb shell input tap x y</code> 点击</li>
-                <li>使用 <code>adb shell input text "xxx"</code> 输入</li>
-                <li>使用 <code>adb shell screencap -p /sdcard/screen.png</code> 截图</li>
-              </ol>
-            </div>
-          }
+        <iframe
+          src={`/ws-scrcpy/?serial=${encodeURIComponent(remoteDevice?.serial || '')}`}
+          style={{ width: '100%', height: '70vh', border: 'none', borderRadius: 8 }}
+          title="ws-scrcpy remote control"
         />
       </Modal>
     </div>
