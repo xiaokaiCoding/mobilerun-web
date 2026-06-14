@@ -23,7 +23,7 @@ router = APIRouter(prefix="/executions", tags=["executions"])
 active_executions: dict[int, dict[str, Any]] = {}
 
 
-@router.get("/", response_model=list[ExecutionResponse])
+@router.get("", response_model=list[ExecutionResponse])
 async def list_executions(
     device_id: int | None = Query(None),
     test_case_id: int | None = Query(None),
@@ -47,7 +47,7 @@ async def list_executions(
     return list(result.scalars().all())
 
 
-@router.post("/", response_model=ExecutionResponse, status_code=201)
+@router.post("", response_model=ExecutionResponse, status_code=201)
 async def create_execution(
     payload: ExecutionCreate,
     db: AsyncSession = Depends(get_db),

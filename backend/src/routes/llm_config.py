@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/llm-configs", tags=["llm-configs"])
 
 
-@router.get("/", response_model=list[LLMConfigResponse])
+@router.get("", response_model=list[LLMConfigResponse])
 async def list_configs(db: AsyncSession = Depends(get_db)) -> list[LLMConfig]:
     """List all LLM configurations."""
     result = await db.execute(select(LLMConfig).order_by(LLMConfig.created_at.desc()))
@@ -31,7 +31,7 @@ async def get_active_config(db: AsyncSession = Depends(get_db)) -> LLMConfig | N
     return result.scalar_one_or_none()
 
 
-@router.post("/", response_model=LLMConfigResponse, status_code=201)
+@router.post("", response_model=LLMConfigResponse, status_code=201)
 async def create_config(
     payload: LLMConfigCreate,
     db: AsyncSession = Depends(get_db),

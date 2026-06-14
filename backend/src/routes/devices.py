@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/devices", tags=["devices"])
 
 
-@router.get("/", response_model=list[DeviceResponse])
+@router.get("", response_model=list[DeviceResponse])
 async def list_devices(db: AsyncSession = Depends(get_db)) -> list[Device]:
     """List all devices ordered by creation time descending."""
     result = await db.execute(select(Device).order_by(Device.created_at.desc()))

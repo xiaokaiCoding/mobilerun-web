@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/test-cases", tags=["test-cases"])
 
 
-@router.get("/", response_model=list[TestCaseResponse])
+@router.get("", response_model=list[TestCaseResponse])
 async def list_test_cases(
     status: str | None = Query(None, description="Filter by status"),
     db: AsyncSession = Depends(get_db),
@@ -29,7 +29,7 @@ async def list_test_cases(
     return list(result.scalars().all())
 
 
-@router.post("/", response_model=TestCaseResponse, status_code=201)
+@router.post("", response_model=TestCaseResponse, status_code=201)
 async def create_test_case(
     payload: TestCaseCreate,
     db: AsyncSession = Depends(get_db),
