@@ -56,9 +56,9 @@ function getEventLabel(event: ExecutionEvent): string {
     case 'ScreenshotEvent':
       return '截图';
     case 'ResultEvent':
-      return `结果: ${(d.summary ?? d.message ?? '').slice(0, 80)}`;
+      return `结果: ${String(d.summary ?? d.message ?? '').slice(0, 80)}`;
     case 'ErrorEvent':
-      return `错误: ${(d.message ?? d.error ?? 'unknown').slice(0, 80)}`;
+      return `错误: ${String(d.message ?? d.error ?? 'unknown').slice(0, 80)}`;
     case 'NavigationEvent':
       return `导航: ${d.url ?? d.target ?? ''}`;
     default:

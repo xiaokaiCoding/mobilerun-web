@@ -14,11 +14,11 @@ from sqlalchemy import (
     JSON,
     String,
     Text,
-    TinyInteger,
 )
 from sqlalchemy.orm import DeclarativeBase, relationship
 
-Base = DeclarativeBase()
+class Base(DeclarativeBase):
+    pass
 
 
 class Device(Base):
@@ -53,7 +53,7 @@ class LLMConfig(Base):
     base_url = Column(String(512), nullable=True)
     temperature = Column(DECIMAL(5, 2), nullable=False, server_default="0.2")
     max_tokens = Column(Integer, nullable=False, server_default="4096")
-    is_active = Column(TinyInteger, nullable=False, server_default="0")
+    is_active = Column(Integer, nullable=False, server_default="0")
     extra_params = Column(JSON, nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(
