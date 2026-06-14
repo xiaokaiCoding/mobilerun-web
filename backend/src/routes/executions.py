@@ -60,7 +60,7 @@ async def list_executions(
 
     stmt = stmt.offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(stmt)
-    items = list(result.scalars().all())
+    items = [ExecutionResponse.model_validate(e) for e in result.scalars().all()]
 
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 

@@ -35,7 +35,7 @@ async def list_test_cases(
         stmt = stmt.where(TestCase.status == status)
     stmt = stmt.offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(stmt)
-    items = list(result.scalars().all())
+    items = [TestCaseResponse.model_validate(tc) for tc in result.scalars().all()]
 
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 

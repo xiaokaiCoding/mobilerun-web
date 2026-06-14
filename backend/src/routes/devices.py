@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,7 +31,7 @@ async def list_devices(
     stmt = select(Device).order_by(Device.created_at.desc())
     stmt = stmt.offset((page - 1) * page_size).limit(page_size)
     result = await db.execute(stmt)
-    items = list(result.scalars().all())
+    items = [DeviceResponse.model_validate(d) for d in result.scalars().all()]
 
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 
