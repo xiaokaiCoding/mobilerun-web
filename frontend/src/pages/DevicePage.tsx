@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Table, Tag, Button, Drawer, Descriptions, message, Space, Modal, Form, Input, Select, Alert, Card } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { getDevices, scanDevices, registerDevice } from '../api/devices';
+import { getDevices, scanDevices, registerDevice, updateDevice } from '../api/devices';
 import type { Device } from '../types';
 
 const statusMap: Record<Device['status'], { color: string; text: string }> = {
@@ -18,7 +18,10 @@ export default function DevicePage() {
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
 
   const fetchDevices = async () => {
     setLoading(true);
@@ -65,12 +68,35 @@ export default function DevicePage() {
     }
   };
 
+  const handleEdit = (record: Device) => {
+    setEditingDevice(record);
+    editForm.setFieldsValue({ name: record.name, model: record.model });
+    setEditModalOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    try {
+      const values = await editForm.validateFields();
+      if (editingDevice) {
+        await updateDevice(String(editingDevice.id), values);
+        message.success('更新成功');
+        setEditModalOpen(false);
+        editForm.resetFields();
+        await fetchDevices();
+      }
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'errorFields' in e) return;
+      message.error('更新失败');
+    }
+  };
+
   const columns: ColumnsType<Device> = [
     {
       title: '名称',
       dataIndex: 'name',
       key: 'name',
       width: 150,
+      render: (name: string, record) => name || <span style={{ color: '#999' }}>点击编辑</span>,
     },
     {
       title: '序列号',
@@ -107,6 +133,14 @@ export default function DevicePage() {
       key: 'lastSeenAt',
       width: 200,
       render: (t: string) => (t ? dayjs(t).format('YYYY-MM-DD HH:mm:ss') : '-'),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 100,
+      render: (_, record) => (
+        <Button size="small" onClick={() => handleEdit(record)}>编辑</Button>
+      ),
     },
   ];
 
@@ -211,6 +245,22 @@ export default function DevicePage() {
           </Form.Item>
           <Form.Item name="platform" label="平台" initialValue="android">
             <Select options={[{ label: 'Android', value: 'android' }, { label: 'iOS', value: 'ios' }]} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="编辑设备"
+        open={editModalOpen}
+        onOk={handleEditSave}
+        onCancel={() => setEditModalOpen(false)}
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item name="name" label="设备名称" rules={[{ required: true }]}>
+            <Input placeholder="例如: 小米14 Pro" />
+          </Form.Item>
+          <Form.Item name="model" label="型号">
+            <Input placeholder="例如: 23127PN0CC" />
           </Form.Item>
         </Form>
       </Modal>

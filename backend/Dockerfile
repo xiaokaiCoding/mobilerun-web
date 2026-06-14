@@ -13,9 +13,10 @@ RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.li
 WORKDIR /app
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple \
+RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ \
     fastapi uvicorn[standard] sqlalchemy[asyncio] aiomysql pymysql \
-    pydantic pydantic-settings httpx python-multipart greenlet
+    pydantic pydantic-settings httpx python-multipart greenlet && \
+    pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ mobilerun>=0.6.0
 
 COPY src/ ./src/
 COPY sql/ ./sql/

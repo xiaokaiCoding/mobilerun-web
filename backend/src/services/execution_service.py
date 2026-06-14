@@ -152,15 +152,20 @@ async def run_execution(
         config = ConfigLoader.load()
         config.device.serial = device_serial
 
-        # Apply LLM config to all profiles
-        for profile_name in config.llm_profiles:
-            profile = config.llm_profiles[profile_name]
-            profile.provider = llm_config.get("provider", "openai_like")
-            profile.model = llm_config.get("model_name")
-            profile.api_key = llm_config.get("api_key")
-            profile.base_url = llm_config.get("base_url")
-            if llm_config.get("temperature") is not None:
-                profile.temperature = float(llm_config["temperature"])
+        # Apply LLM config to all profiles (only if llm_config has values)
+        if llm_config:
+            for profile_name in config.llm_profiles:
+                profile = config.llm_profiles[profile_name]
+                if llm_config.get("provider"):
+                    profile.provider = llm_config["provider"]
+                if llm_config.get("model_name"):
+                    profile.model = llm_config["model_name"]
+                if llm_config.get("api_key"):
+                    profile.api_key = llm_config["api_key"]
+                if llm_config.get("base_url"):
+                    profile.base_url = llm_config["base_url"]
+                if llm_config.get("temperature") is not None:
+                    profile.temperature = float(llm_config["temperature"])
 
         agent = MobileAgent(goal=goal, config=config)
         handler = agent.run()
