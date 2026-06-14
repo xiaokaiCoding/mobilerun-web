@@ -124,24 +124,27 @@ export default function DevicePage() {
         </Space>
       </div>
 
-      <Card title="如何注册设备" size="small" style={{ marginBottom: 16 }}>
+      <Card title="设备连接说明" size="small" style={{ marginBottom: 16 }}>
         <Alert
           type="info"
           showIcon
-          message="3 种方式注册设备"
+          message="架构: 云端 mobilerun-web → SSH 隧道 → 你电脑的 ADB → 手机(无线 ADB)"
           description={
-            <ol style={{ margin: '8px 0 0 20px', paddingLeft: 0 }}>
-              <li><b>注册设备</b>: 手动填写序列号(如 <code>192.168.1.18:5555</code>)、设备名称和型号</li>
-              <li><b>扫描设备</b>: 通过 ADB 自动扫描当前连接的无线设备并自动注册</li>
-              <li><b>无线 adb 连接步骤</b>:
-                <ul style={{ margin: '4px 0 0 20px' }}>
-                  <li>数据线连接手机 → 手机开启 USB 调试</li>
-                  <li>执行 <code>adb -s &lt;serial&gt; tcpip 5555</code> 切换到无线模式</li>
-                  <li>拔掉数据线,手机保持在同一 WiFi</li>
-                  <li>在「注册设备」中填写 <code>&lt;手机WiFi IP&gt;:5555</code></li>
-                </ul>
-              </li>
-            </ol>
+            <div>
+              <p><b>第一步: 在你电脑上启动网关脚本(保持运行)</b></p>
+              <pre style={{ background: '#f5f5f5', padding: '8px', borderRadius: 4, fontSize: 13 }}>
+{'// Mac / Linux\ncd mobilerun-gateway\n./start-gateway.sh\n\n// Windows (PowerShell)\ncd mobilerun-gateway\npowershell -ExecutionPolicy Bypass -File start-gateway.ps1'}
+              </pre>
+              <p style={{ marginTop: 12 }}><b>第二步: 确保手机已通过无线 ADB 连接</b></p>
+              <ol style={{ margin: '4px 0 0 20px' }}>
+                <li>数据线连接手机 → 手机开启「USB 调试」和「无线调试」</li>
+                <li>执行 <code>adb tcpip 5555</code> 切换无线模式</li>
+                <li>拔掉数据线,执行 <code>adb connect &lt;手机WiFi IP&gt;:5555</code></li>
+                <li>确认 <code>adb devices</code> 显示 <code>&lt;IP&gt;:5555 device</code></li>
+              </ol>
+              <p style={{ marginTop: 12 }}><b>第三步: 回到此页面,点击「扫描设备」即可自动注册</b></p>
+              <p style={{ color: '#888', fontSize: 12 }}>如果扫描不到设备,也可点击「注册设备」手动填写序列号添加</p>
+            </div>
           }
           style={{ textAlign: 'left' }}
         />
