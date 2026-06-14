@@ -28,8 +28,10 @@ async def list_devices(db: AsyncSession = Depends(get_db)) -> list[Device]:
 @router.post("/scan", response_model=list[DeviceResponse])
 async def scan_devices(db: AsyncSession = Depends(get_db)) -> list[Device]:
     """Run `adb devices`, parse output, upsert into database."""
+    from src.config import settings
+
     proc = await asyncio.create_subprocess_exec(
-        "adb", "devices",
+        "adb", "-H", settings.ADB_HOST, "-P", str(settings.ADB_PORT), "devices",
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
