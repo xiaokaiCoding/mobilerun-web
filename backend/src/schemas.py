@@ -89,6 +89,7 @@ class TestCaseCreate(BaseModel):
     name: str
     description: Optional[str] = None
     goal: str
+    max_steps: int = 30
     status: str = "active"
 
 
@@ -96,6 +97,7 @@ class TestCaseUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     goal: Optional[str] = None
+    max_steps: Optional[int] = None
     status: Optional[str] = None
 
 
@@ -106,6 +108,7 @@ class TestCaseResponse(BaseModel):
     name: str
     description: Optional[str]
     goal: str
+    max_steps: int
     status: str
     created_at: datetime
     updated_at: datetime

@@ -70,6 +70,7 @@ class TestCase(Base):
     name = Column(String(256), nullable=False)
     description = Column(Text, nullable=True)
     goal = Column(Text, nullable=False)
+    max_steps = Column(Integer, nullable=False, server_default="30")
     status = Column(String(32), nullable=False, server_default="active")
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(

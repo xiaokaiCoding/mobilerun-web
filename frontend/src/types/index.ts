@@ -27,6 +27,7 @@ export interface TestCase {
   name: string;
   description: string;
   goal: string;
+  maxSteps: number;
   status: 'draft' | 'active' | 'archived';
   createdAt: string;
   updatedAt: string;

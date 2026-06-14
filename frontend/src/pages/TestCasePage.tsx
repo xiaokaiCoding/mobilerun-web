@@ -5,6 +5,7 @@ import {
   Modal,
   Form,
   Input,
+  InputNumber,
   Tag,
   Space,
   message,
@@ -61,6 +62,7 @@ export default function TestCasePage() {
         name: record.name,
         description: record.description,
         goal: record.goal,
+        maxSteps: record.maxSteps ?? 30,
       });
     } else {
       setEditingId(null);
@@ -133,6 +135,12 @@ export default function TestCasePage() {
         const s = statusMap[status];
         return <Tag color={s.color}>{s.text}</Tag>;
       },
+    },
+    {
+      title: '最大步数',
+      dataIndex: 'maxSteps',
+      key: 'maxSteps',
+      width: 100,
     },
     {
       title: '创建时间',
@@ -227,6 +235,9 @@ export default function TestCasePage() {
           </Form.Item>
           <Form.Item name="goal" label="目标" rules={[{ required: true }]}>
             <Input.TextArea rows={4} />
+          </Form.Item>
+          <Form.Item name="maxSteps" label="最大步数" initialValue={30}>
+            <InputNumber min={1} max={200} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>

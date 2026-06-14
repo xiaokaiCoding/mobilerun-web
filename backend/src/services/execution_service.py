@@ -129,6 +129,7 @@ async def run_execution(
     goal: str,
     llm_config: dict[str, Any],
     db_url: str,
+    max_steps: int = 30,
 ) -> None:
     """Run a MobileAgent execution and stream events.
 
@@ -151,6 +152,7 @@ async def run_execution(
         # Build MobileConfig
         config = ConfigLoader.load()
         config.device.serial = device_serial
+        config.agent.max_steps = max_steps
 
         # Apply LLM config to all profiles (only if llm_config has values)
         if llm_config:

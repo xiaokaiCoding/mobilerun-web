@@ -116,6 +116,7 @@ async def create_execution(
             goal=test_case.goal,
             llm_config=llm_config_dict,
             db_url=settings.async_db_url,
+            max_steps=test_case.max_steps or 30,
         )
     )
     active_executions[execution.id]["task"] = task
@@ -224,7 +225,7 @@ async def stop_execution(
     exec_id: int,
     db: AsyncSession = Depends(get_db),
 ) -> Execution:
-    """Set stop flag and cancel the execution task."""
+    """Force stop a running execution."""
     result = await db.execute(select(Execution).where(Execution.id == exec_id))
     execution = result.scalar_one_or_none()
     if not execution:
@@ -232,10 +233,31 @@ async def stop_execution(
 
     exec_info = active_executions.get(exec_id)
     if exec_info:
+        # 1. Set stop event for graceful shutdown
         exec_info["stop_event"].set()
+
+        # 2. Kill the mobile agent on the device to unblock the loop
+        try:
+            from src.config import settings
+            import asyncio
+            proc = await asyncio.create_subprocess_exec(
+                "adb", "-H", settings.ADB_HOST, "-P", str(settings.ADB_PORT),
+                "shell", "am", "force-stop", "com.mobilerun.portal",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            await asyncio.wait_for(proc.communicate(), timeout=10)
+        except Exception:
+            pass
+
+        # 3. Cancel the asyncio task
         task = exec_info.get("task")
         if task and not task.done():
             task.cancel()
+            try:
+                await asyncio.wait_for(task, timeout=5)
+            except (asyncio.CancelledError, asyncio.TimeoutError):
+                pass
 
     execution.status = "stopped"
     execution.finished_at = datetime.utcnow()
