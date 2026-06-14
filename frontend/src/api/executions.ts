@@ -2,9 +2,9 @@ import { apiClient } from './client';
 import type { Execution } from '../types';
 
 export interface CreateExecutionPayload {
-  testCaseId?: number;
-  deviceId?: number;
-  llmConfigId?: number | null;
+  device_id: number;
+  test_case_id: number;
+  llm_config_id?: number | null;
 }
 
 export async function getExecutions(

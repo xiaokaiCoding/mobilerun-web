@@ -73,8 +73,8 @@ export default function ExecutionPage() {
     try {
       const values = await form.validateFields();
       const execution = await createExecution({
-        testCaseId: values.testCaseId,
-        deviceId: values.deviceId,
+        device_id: values.deviceId,
+        test_case_id: values.testCaseId,
       });
       message.success('执行已创建');
       setModalOpen(false);
