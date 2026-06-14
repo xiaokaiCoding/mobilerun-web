@@ -20,6 +20,7 @@ export default function DevicePage() {
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
+  const [remoteDevice, setRemoteDevice] = useState<Device | null>(null);
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
 
@@ -137,9 +138,12 @@ export default function DevicePage() {
     {
       title: '操作',
       key: 'action',
-      width: 100,
+      width: 160,
       render: (_, record) => (
-        <Button size="small" onClick={() => handleEdit(record)}>编辑</Button>
+        <Space>
+          <Button size="small" type="primary" onClick={() => setRemoteDevice(record)}>远程控制</Button>
+          <Button size="small" onClick={() => handleEdit(record)}>编辑</Button>
+        </Space>
       ),
     },
   ];
@@ -269,6 +273,30 @@ export default function DevicePage() {
             <Input placeholder="例如: 23127PN0CC" />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title={`远程控制: ${remoteDevice?.name || remoteDevice?.serial || ''}`}
+        open={!!remoteDevice}
+        onCancel={() => setRemoteDevice(null)}
+        footer={[<Button key="close" onClick={() => setRemoteDevice(null)}>关闭</Button>]}
+        width={600}
+      >
+        <Alert
+          type="info"
+          message="远程控制功能开发中"
+          description={
+            <div>
+              <p>ws-scrcpy 集成方案调研中，预计后续版本支持。</p>
+              <p>当前可通过以下方式手动控制设备:</p>
+              <ol>
+                <li>使用 <code>adb shell input tap x y</code> 点击</li>
+                <li>使用 <code>adb shell input text "xxx"</code> 输入</li>
+                <li>使用 <code>adb shell screencap -p /sdcard/screen.png</code> 截图</li>
+              </ol>
+            </div>
+          }
+        />
       </Modal>
     </div>
   );
