@@ -1,0 +1,150 @@
+import { useEffect, useState } from 'react';
+import { Table, Tag, Button, Drawer, Descriptions, message, Space } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import dayjs from 'dayjs';
+import { getDevices, scanDevices } from '../api/devices';
+import type { Device } from '../types';
+
+const statusMap: Record<Device['status'], { color: string; text: string }> = {
+  online: { color: 'green', text: '在线' },
+  offline: { color: 'default', text: '离线' },
+  busy: { color: 'orange', text: '忙碌' },
+};
+
+export default function DevicePage() {
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const fetchDevices = async () => {
+    setLoading(true);
+    try {
+      const list = await getDevices();
+      setDevices(list);
+    } catch {
+      message.error('获取设备列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDevices();
+    const timer = setInterval(fetchDevices, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleScan = async () => {
+    setScanning(true);
+    try {
+      await scanDevices();
+      message.success('扫描完成');
+      await fetchDevices();
+    } catch {
+      message.error('扫描设备失败');
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const columns: ColumnsType<Device> = [
+    {
+      title: '名称',
+      dataIndex: 'name',
+      key: 'name',
+      width: 150,
+    },
+    {
+      title: '序列号',
+      dataIndex: 'serial',
+      key: 'serial',
+      width: 200,
+    },
+    {
+      title: '型号',
+      dataIndex: 'model',
+      key: 'model',
+      width: 180,
+    },
+    {
+      title: '平台',
+      dataIndex: 'platform',
+      key: 'platform',
+      width: 100,
+      render: (platform: string) => platform.toUpperCase(),
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      width: 100,
+      render: (status: Device['status']) => {
+        const s = statusMap[status];
+        return <Tag color={s.color}>{s.text}</Tag>;
+      },
+    },
+    {
+      title: '最后连接时间',
+      dataIndex: 'lastSeenAt',
+      key: 'lastSeenAt',
+      width: 200,
+      render: (t: string) => (t ? dayjs(t).format('YYYY-MM-DD HH:mm:ss') : '-'),
+    },
+  ];
+
+  return (
+    <div>
+      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+        <h2 style={{ margin: 0 }}>设备管理</h2>
+        <Button type="primary" onClick={handleScan} loading={scanning}>
+          扫描设备
+        </Button>
+      </div>
+      <Table<Device>
+        rowKey="id"
+        columns={columns}
+        dataSource={devices}
+        loading={loading}
+        onRow={(record) => ({
+          onClick: () => {
+            setSelectedDevice(record);
+            setDrawerOpen(true);
+          },
+          style: { cursor: 'pointer' },
+        })}
+      />
+      <Drawer
+        title="设备详情"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        width={600}
+      >
+        {selectedDevice && (
+          <Descriptions column={1} bordered>
+            <Descriptions.Item label="名称">{selectedDevice.name}</Descriptions.Item>
+            <Descriptions.Item label="序列号">{selectedDevice.serial}</Descriptions.Item>
+            <Descriptions.Item label="型号">{selectedDevice.model}</Descriptions.Item>
+            <Descriptions.Item label="平台">
+              {selectedDevice.platform.toUpperCase()}
+            </Descriptions.Item>
+            <Descriptions.Item label="状态">
+              <Tag color={statusMap[selectedDevice.status].color}>
+                {statusMap[selectedDevice.status].text}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="最后连接时间">
+              {selectedDevice.lastSeenAt
+                ? dayjs(selectedDevice.lastSeenAt).format('YYYY-MM-DD HH:mm:ss')
+                : '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="创建时间">
+              {dayjs(selectedDevice.createdAt).format('YYYY-MM-DD HH:mm:ss')}
+            </Descriptions.Item>
+          </Descriptions>
+        )}
+      </Drawer>
+    </div>
+  );
+}
